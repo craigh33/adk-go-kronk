@@ -1,0 +1,23 @@
+name: CI Build
+
+on:
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          args: --timeout=5m
+
+      - name: Unit tests
+        run: go test ./... -count=1
