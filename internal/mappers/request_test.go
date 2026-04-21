@@ -66,18 +66,25 @@ func TestRequestFromLLMRequest_NilRequest(t *testing.T) {
 func TestRequestFromLLMRequest_BasicUserTurnAndSystemInstruction(t *testing.T) {
 	t.Parallel()
 
+	temperature := float32(0.1)
+	topP := float32(0.9)
+	topK := float32(40)
+	seed := int32(42)
+	frequencyPenalty := float32(0.5)
+	presencePenalty := float32(0.25)
+
 	req := &model.LLMRequest{
 		Contents: []*genai.Content{genai.NewContentFromText("hello", genaiRoleUser)},
 		Config: &genai.GenerateContentConfig{
 			SystemInstruction: genai.NewContentFromText("be brief", genaiRoleSystem),
-			Temperature:       new(float32(0.1)),
-			TopP:              new(float32(0.9)),
-			TopK:              new(float32(40)),
+			Temperature:       &temperature,
+			TopP:              &topP,
+			TopK:              &topK,
 			MaxOutputTokens:   256,
 			StopSequences:     []string{"STOP"},
-			Seed:              new(int32(42)),
-			FrequencyPenalty:  new(float32(0.5)),
-			PresencePenalty:   new(float32(0.25)),
+			Seed:              &seed,
+			FrequencyPenalty:  &frequencyPenalty,
+			PresencePenalty:   &presencePenalty,
 		},
 	}
 
