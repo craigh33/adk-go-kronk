@@ -145,8 +145,20 @@ func normalizeSchemaTypes(v any) {
 	case map[string]any:
 		for k, val := range m {
 			if k == "type" {
-				if s, ok := val.(string); ok {
-					m[k] = strings.ToLower(s)
+				switch t := val.(type) {
+				case string:
+					m[k] = strings.ToLower(t)
+				case []any:
+					for i, item := range t {
+						if s, ok := item.(string); ok {
+							t[i] = strings.ToLower(s)
+						}
+					}
+				case []string:
+					for i, s := range t {
+						t[i] = strings.ToLower(s)
+					}
+					m[k] = t
 				}
 			} else {
 				normalizeSchemaTypes(val)
