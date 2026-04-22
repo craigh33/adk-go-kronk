@@ -6,7 +6,7 @@ loaded locally on your machine.
 
 ## Prerequisites
 
-- Go 1.25+
+- Go 1.26+
 - Enough disk space for the llama.cpp libraries, Kronk catalog, and the
   selected model file (the first run downloads them into the Kronk default
   install directories; subsequent runs reuse the cached artifacts).
