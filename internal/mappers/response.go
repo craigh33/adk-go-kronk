@@ -259,8 +259,7 @@ func accumulateToolCall(state *StreamState, tc krnkmodel.ResponseToolCall) {
 			existing.args.Reset()
 			existing.args.Write(b)
 		}
-	}
-	if tc.Raw != "" {
+	} else if tc.Raw != "" {
 		existing.args.WriteString(tc.Raw)
 	}
 }
