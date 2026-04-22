@@ -12,7 +12,7 @@
 
 ## Requirements
 
-- **Go** 1.25+ (aligned with `google.golang.org/adk`)
+- **Go** 1.26+ (aligned with `google.golang.org/adk`)
 - **[golangci-lint](https://golangci-lint.run/welcome/install/)** if you run `make lint` (uses [.golangci.yaml](.golangci.yaml))
 - Enough disk space and (optionally) GPU for the selected GGUF model. The
   first run of any Kronk-backed program downloads the llama.cpp libraries,
