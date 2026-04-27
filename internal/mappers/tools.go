@@ -140,6 +140,8 @@ func functionParametersToJSONSchema(fd *genai.FunctionDeclaration) (map[string]a
 // JSON Schema map. genai.Schema marshals Gemini-style uppercase type names
 // (for example "STRING", "OBJECT", "ARRAY") but most OpenAI-compatible
 // consumers — Kronk included — expect lowercase JSON Schema type names.
+
+//nolint:gocognit // not concerned yet about complexity
 func normalizeSchemaTypes(v any) {
 	switch m := v.(type) {
 	case map[string]any:
