@@ -10,7 +10,7 @@ Thank you for investing time in this project. Contributions are welcome through 
 
 ## Development setup
 
-- **Go**: match `go.mod` (see [`go.mod`](go.mod); currently Go 1.25+).
+- **Go**: match `go.mod` (see [`go.mod`](go.mod); currently Go 1.26.0).
 - **Clone** the repository and work on a branch off `main`.
 
 ### Homebrew Bundle (macOS)
