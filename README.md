@@ -1,25 +1,13 @@
-<p align="center">
-  <img
-    src="docs/images/readme-header.jpg"
-    alt="adk-go-kronk banner showing Agent Development Kit connected to Kronk"
-    width="100%"
-  />
-</p>
-
 # adk-go-kronk
 
-[kronk](https://github.com/ardanlabs/kronk) implementation of the [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/model#LLM) interface for [adk-go](https://github.com/google/adk-go), so you can run agents on any kronk-supported model with the same ADK APIs you use for Gemini.
+[kronk](https://github.com/ardanlabs/kronk) implementation of the [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/model#LLM) interface for [adk-go](https://github.com/google/adk-go), so you can run agents on any Kronk-supported local GGUF model with the same ADK APIs you use for Gemini.
+
+**Other providers:** [adk-go-bedrock](https://github.com/craigh33/adk-go-bedrock) · [adk-go-ollama](https://github.com/craigh33/adk-go-ollama)
 
 ## Requirements
 
 - **Go** 1.26+ (aligned with `google.golang.org/adk`)
-- **[golangci-lint](https://golangci-lint.run/welcome/install/)** if you run `make lint` (uses [.golangci.yaml](.golangci.yaml))
-- Enough disk space and (optionally) GPU for the selected GGUF model. The
-  first run of any Kronk-backed program downloads the llama.cpp libraries,
-  the Kronk model catalog, and the chosen model into Kronk's default install
-  directories; subsequent runs reuse the cached artifacts. See the [Kronk
-  README](https://github.com/ardanlabs/kronk#readme) for platform / GPU
-  support.
+- Enough disk space and (optionally) GPU for the selected GGUF model. The first run of any Kronk-backed program downloads the llama.cpp libraries, the Kronk model catalog, and the chosen model into Kronk's default install directories; subsequent runs reuse the cached artifacts. See the [Kronk README](https://github.com/ardanlabs/kronk#readme) for platform / GPU support.
 
 ## Install
 
@@ -29,53 +17,7 @@ go get github.com/craigh33/adk-go-kronk
 
 Replace the module path with your fork or published path if you rename the module in `go.mod`.
 
-## Makefile
-
-| Target | Description |
-|--------|-------------|
-| `make test` | Run unit tests |
-| `make build` | Compile all packages |
-| `make lint` | Run `golangci-lint run ./...` |
-| `make pre-commit-install` | Install pre-commit hooks |
-
-## Contributing / Development
-
-### Pre-commit hooks
-
-This project uses [pre-commit](https://pre-commit.com) to enforce code quality and commit hygiene. The following tools must be available on your `PATH` before installing the hooks:
-
-| Tool | Purpose | Install |
-|------|---------|---------|
-| [pre-commit](https://pre-commit.com) | Hook framework | `brew install pre-commit` |
-| [golangci-lint](https://golangci-lint.run/welcome/install/) | Go linter (runs `make lint`) | `brew install golangci-lint` |
-| [gitleaks](https://github.com/gitleaks/gitleaks) | Secret / credential scanner | `brew install gitleaks` |
-
-Once the tools are installed, wire the hooks into your local clone:
-
-```bash
-make pre-commit-install
-```
-
-This installs hooks for both the `pre-commit` stage and the `commit-msg` stage.
-
-#### What the hooks do
-
-| Hook | Stage | Description |
-|------|-------|-------------|
-| `trailing-whitespace` | pre-commit | Strips trailing whitespace |
-| `end-of-file-fixer` | pre-commit | Ensures files end with a newline |
-| `check-yaml` | pre-commit | Validates YAML syntax |
-| `no-commit-to-branch` | pre-commit | Prevents direct commits to `main` |
-| `conventional-pre-commit` | commit-msg | Enforces [Conventional Commits](https://www.conventionalcommits.org/) message format (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`) |
-| `golangci-lint` | pre-commit | Runs `make lint` against all Go files |
-| `gitleaks` | pre-commit | Scans staged diff for secrets/credentials |
-
 ## Usage
-
-The provider implements [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/model#LLM)
-on top of a loaded [`*kronk.Kronk`](https://pkg.go.dev/github.com/ardanlabs/kronk/sdk/kronk#Kronk)
-engine. The convenience constructor `kronk.New` owns the engine lifecycle;
-use `kronk.NewWithKronk` if you already have an engine you want to reuse.
 
 ```go
 ctx := context.Background()
@@ -102,15 +44,13 @@ if err != nil {
 // llm.GenerateContent(ctx, req, stream) directly.
 ```
 
-The [`internal/mappers`](internal/mappers/) package holds genai ↔ Kronk
-conversions (requests, responses, tools, usage); the public provider
-surface is [`kronk`](kronk/).
+The provider implements [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/model#LLM) on top of a loaded [`*kronk.Kronk`](https://pkg.go.dev/github.com/ardanlabs/kronk/sdk/kronk#Kronk) engine. The convenience constructor `kronk.New` owns the engine lifecycle; use `kronk.NewWithKronk` if you already have an engine you want to reuse.
+
+The [`internal/mappers`](internal/mappers/) package holds genai ↔ Kronk conversions (requests, responses, tools, usage); the public provider surface is [`kronk`](kronk/).
 
 ### Model files
 
-`Config.ModelFiles` is the slice of GGUF paths the Kronk engine will load.
-The easiest way to obtain them is via Kronk's own catalog / models helpers,
-for example:
+`Config.ModelFiles` is the slice of GGUF paths the Kronk engine will load. The easiest way to obtain them is via Kronk's own catalog / models helpers, for example:
 
 ```go
 mdls, _ := models.New()
@@ -118,19 +58,13 @@ mp, _ := ctlg.DownloadModel(ctx, krnk.FmtLogger, "Qwen3-0.6B-Q8_0")
 llm, _ := kronk.New(ctx, kronk.Config{ModelFiles: mp.ModelFiles})
 ```
 
-See [`examples/kronk-web-ui`](examples/kronk-web-ui) for a complete runnable
-example including library and model installation.
+See [`examples/kronk-web-ui`](examples/kronk-web-ui) for a complete runnable example including library and model installation.
 
 ## Examples
 
 Each example has its own `README.md` and `Makefile`:
 
-- [`examples/kronk-web-ui`](examples/kronk-web-ui): ADK local web UI + REST
-  API launcher backed by a Kronk-loaded GGUF model. Controlled via
-  `KRONK_MODEL_ID` (catalog model ID, default `Qwen3-0.6B-Q8_0`) or
-  `KRONK_MODEL_URL` (direct GGUF URL). First run downloads the llama.cpp
-  libraries, the Kronk catalog, and the selected model; subsequent runs
-  reuse the cache.
+- [`examples/kronk-web-ui`](examples/kronk-web-ui): ADK local web UI + REST API launcher backed by a Kronk-loaded GGUF model. Controlled via `KRONK_MODEL_ID` (catalog model ID, default `Qwen3-0.6B-Q8_0`) or `KRONK_MODEL_URL` (direct GGUF URL). First run downloads the llama.cpp libraries, the Kronk catalog, and the selected model; subsequent runs reuse the cache.
 
 ```bash
 export KRONK_MODEL_ID=Qwen3-0.6B-Q8_0
@@ -139,57 +73,29 @@ make -C examples/kronk-web-ui run
 
 ## How it maps to Kronk
 
-- **Messages**: `genai` roles `user` and `model` map to Kronk `user` and
-  `assistant`. `FunctionResponse` parts are emitted as standalone
-  `role:"tool"` messages with `tool_call_id` so Kronk can thread them back
-  to the originating tool call.
-- **System instruction**: `GenerateContentConfig.SystemInstruction` is
-  prepended as a `role:"system"` message.
-- **Inference params**: `Temperature`, `TopP`, `TopK`, `MaxOutputTokens`,
-  `StopSequences`, `Seed`, `FrequencyPenalty`, and `PresencePenalty` are
-  passed through to Kronk.
-- **Tools**: only `genai.Tool.FunctionDeclarations` are mapped (as
-  OpenAI-shaped function tool entries with lowercased JSON Schema types).
-  Non-function variants (Google Search, Code Execution, Retrieval, MCP
-  servers, Computer Use, File Search, Google Maps, URL Context, etc.) are
-  rejected early with a clear provider error. Use ADK's
-  [`mcptoolset`](https://pkg.go.dev/google.golang.org/adk/tool/mcptoolset)
-  to bring MCP tools in as function declarations.
-- **Multimodal input**: inline `image/*`, `audio/*`, and `video/*` bytes on
-  user turns are sent as OpenAI-style `image_url` / `input_audio` /
-  `video_url` blocks. Remote `FileData` URIs and inline media on model
-  turns are rejected — inline the bytes on the user turn instead.
-- **Streaming**: when streaming is enabled the provider calls
-  `ChatStreaming`, emits text deltas as `Partial:true` responses, and
-  buffers tool calls, reasoning, usage, and finish reason into the final
-  `TurnComplete:true` response.
-- **Usage**: Kronk `Usage` maps to ADK
-  `GenerateContentResponseUsageMetadata` (`PromptTokenCount`,
-  `CandidatesTokenCount`, `TotalTokenCount`).
+- **Messages**: `genai` roles `user` and `model` map to Kronk `user` and `assistant`. `FunctionResponse` parts are emitted as standalone `role:"tool"` messages with `tool_call_id` so Kronk can thread them back to the originating tool call.
+- **System instruction**: `GenerateContentConfig.SystemInstruction` is prepended as a `role:"system"` message.
+- **Inference params**: `Temperature`, `TopP`, `TopK`, `MaxOutputTokens`, `StopSequences`, `Seed`, `FrequencyPenalty`, and `PresencePenalty` are passed through to Kronk.
+- **Tools**: only `genai.Tool.FunctionDeclarations` are mapped (as OpenAI-shaped function tool entries with lowercased JSON Schema types). Non-function variants (Google Search, Code Execution, Retrieval, MCP servers, Computer Use, File Search, Google Maps, URL Context, etc.) are rejected early with a clear provider error. Use ADK's [`mcptoolset`](https://pkg.go.dev/google.golang.org/adk/tool/mcptoolset) to bring MCP tools in as function declarations.
+- **Multimodal input**: inline `image/*`, `audio/*`, and `video/*` bytes on user turns are sent as OpenAI-style `image_url` / `input_audio` / `video_url` blocks. Remote `FileData` URIs and inline media on model turns are rejected — inline the bytes on the user turn instead.
+- **Streaming**: when streaming is enabled the provider calls `ChatStreaming`, emits text deltas as `Partial:true` responses, and buffers tool calls, reasoning, usage, and finish reason into the final `TurnComplete:true` response.
+- **Usage**: Kronk `Usage` maps to ADK `GenerateContentResponseUsageMetadata` (`PromptTokenCount`, `CandidatesTokenCount`, `TotalTokenCount`).
 
 ## Limitations
 
-- **No native safety / guardrails**: ADK `SafetySettings` and
-  `ModelArmorConfig` are not supported; Kronk runs local models with no
-  built-in guardrail layer. Wrap the provider with your own policy layer
-  if you need one.
-- **Non-function tool variants unsupported**: Only function declarations
-  are passed through to the model. All other `genai.Tool` variants return
-  a request-time error with a clear message naming the unsupported
-  variants.
-- **Model-role media unsupported**: Only text, reasoning, and tool-call
-  parts are permitted on assistant (`model`-role) turns. Inline or remote
-  media on assistant turns will produce an error.
-- **Remote `FileData` unsupported**: Kronk loads local models and does not
-  fetch arbitrary remote URIs; callers must inline bytes via `InlineData`.
-- **Default request timeout**: Kronk's `Chat` / `ChatStreaming` APIs
-  require a context deadline. When the caller does not provide one the
-  provider attaches a 2-minute default — override it with
-  `context.WithTimeout` for long-running prompts.
-- **No embeddings / rerank surface**: ADK `model.LLM` is chat-only; call
-  the underlying `*kronk.Kronk` directly (via `Model.Engine()`) for
-  embedding or rerank features if you need them.
+- **No native safety / guardrails**: ADK `SafetySettings` and `ModelArmorConfig` are not supported; Kronk runs local models with no built-in guardrail layer. Wrap the provider with your own policy layer if you need one.
+- **Non-function tool variants unsupported**: Only function declarations are passed through to the model. All other `genai.Tool` variants return a request-time error with a clear message naming the unsupported variants.
+- **Model-role media unsupported**: Only text, reasoning, and tool-call parts are permitted on assistant (`model`-role) turns. Inline or remote media on assistant turns will produce an error.
+- **Remote `FileData` unsupported**: Kronk loads local models and does not fetch arbitrary remote URIs; callers must inline bytes via `InlineData`.
+- **Default request timeout**: Kronk's `Chat` / `ChatStreaming` APIs require a context deadline. When the caller does not provide one the provider attaches a 2-minute default — override it with `context.WithTimeout` for long-running prompts.
+- **No embeddings / rerank surface**: ADK `model.LLM` is chat-only; call the underlying `*kronk.Kronk` directly (via `Model.Engine()`) for embedding or rerank features if you need them.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for Makefile targets, required pre-commit setup, commit message conventions, and pull request guidelines. For new issues, use the [bug report](https://github.com/craigh33/adk-go-kronk/issues/new?template=bug_report.yml) or [feature request](https://github.com/craigh33/adk-go-kronk/issues/new?template=feature_request.yml) templates.
 
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
+
+[Contributing](CONTRIBUTING.md) · [Issues](https://github.com/craigh33/adk-go-kronk/issues) · [Security](https://github.com/craigh33/adk-go-kronk/security)
