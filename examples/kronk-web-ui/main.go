@@ -2,9 +2,9 @@
 // Kronk provider into the ADK full launcher so the agent can be driven through
 // the ADK web UI and REST API against a locally loaded GGUF model.
 //
-// The first time the program runs it downloads the llama.cpp libraries, the
-// Kronk model catalog, and the selected GGUF model into the default Kronk
-// install directories (see github.com/ardanlabs/kronk/sdk/tools for paths).
+// The first time the program runs it downloads the llama.cpp libraries and the
+// selected GGUF model into the default Kronk install directories (see
+// github.com/ardanlabs/kronk/sdk/tools for paths).
 // Subsequent runs reuse the cached artifacts.
 package main
 
@@ -17,7 +17,6 @@ import (
 	"time"
 
 	krnk "github.com/ardanlabs/kronk/sdk/kronk"
-	"github.com/ardanlabs/kronk/sdk/tools/catalog"
 	"github.com/ardanlabs/kronk/sdk/tools/defaults"
 	"github.com/ardanlabs/kronk/sdk/tools/libs"
 	"github.com/ardanlabs/kronk/sdk/tools/models"
@@ -97,8 +96,8 @@ func run() error {
 }
 
 // installSystem mirrors the kronk chat example: install llama.cpp libraries,
-// pull down the catalog, then fetch the selected GGUF model. It returns the
-// local models.Path the kronk provider will load from.
+// then fetch the selected GGUF model (catalog resolution is handled inside
+// models.Download). It returns the local models.Path the kronk provider loads.
 func installSystem(ctx context.Context, modelID, sourceURL string) (models.Path, error) {
 	ctx, cancel := context.WithTimeout(ctx, installPhaseTimeout)
 	defer cancel()
@@ -111,14 +110,6 @@ func installSystem(ctx context.Context, modelID, sourceURL string) (models.Path,
 		return models.Path{}, err
 	}
 
-	ctlg, err := catalog.New()
-	if err != nil {
-		return models.Path{}, err
-	}
-	if err := ctlg.Download(ctx); err != nil {
-		return models.Path{}, err
-	}
-
 	mdls, err := models.New()
 	if err != nil {
 		return models.Path{}, err
@@ -128,10 +119,10 @@ func installSystem(ctx context.Context, modelID, sourceURL string) (models.Path,
 	case sourceURL != "":
 		//nolint:gosec // G706: sourceURL comes from a developer-set env var; surfacing it in logs is intentional.
 		log.Printf("downloading model from URL: %q", sourceURL)
-		return mdls.Download(ctx, krnk.FmtLogger, sourceURL, "")
+		return mdls.Download(ctx, krnk.FmtLogger, sourceURL)
 	default:
 		//nolint:gosec // G706: modelID comes from a developer-set env var; surfacing it in logs is intentional.
 		log.Printf("downloading model from catalog: %q", modelID)
-		return ctlg.DownloadModel(ctx, krnk.FmtLogger, modelID)
+		return mdls.Download(ctx, krnk.FmtLogger, modelID)
 	}
 }

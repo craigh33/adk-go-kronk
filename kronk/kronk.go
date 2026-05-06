@@ -35,7 +35,7 @@ type Config struct {
 
 	// ModelOptions are forwarded to kronk.New when the provider constructs
 	// its own Kronk instance. Optional.
-	ModelOptions []krnk.Option
+	ModelOptions []krnkmodel.Option
 
 	// InitOptions are forwarded to kronk.Init. Optional.
 	InitOptions []krnk.InitOption
@@ -58,7 +58,11 @@ func New(_ context.Context, cfg Config) (*Model, error) {
 	if err := krnk.Init(cfg.InitOptions...); err != nil {
 		return nil, fmt.Errorf("kronk: init: %w", err)
 	}
-	krn, err := krnk.New(krnkmodel.Config{ModelFiles: cfg.ModelFiles}, cfg.ModelOptions...)
+	opts := append(
+		[]krnkmodel.Option{krnkmodel.WithModelFiles(cfg.ModelFiles)},
+		cfg.ModelOptions...,
+	)
+	krn, err := krnk.New(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("kronk: new engine: %w", err)
 	}
