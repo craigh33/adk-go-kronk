@@ -141,9 +141,11 @@ func summarizePartType(typ string, part krnkmodel.D) string {
 	switch typ {
 	case "text":
 		t, _ := part["text"].(string)
-		const previewLen = 80
-		if len(t) > previewLen {
-			return fmt.Sprintf("text len=%d preview=%q…", len(t), t[:previewLen])
+		const previewRunes = 80
+		runes := []rune(t)
+		if len(runes) > previewRunes {
+			preview := string(runes[:previewRunes])
+			return fmt.Sprintf("text len=%d preview=%q…", len(t), preview)
 		}
 		return fmt.Sprintf("text %q", t)
 	case "image_url":

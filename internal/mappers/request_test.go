@@ -384,8 +384,6 @@ func TestRequestFromLLMRequest_CombinedTextAndInlineSamePart(t *testing.T) {
 }
 
 func TestRequestFromLLMRequest_BinaryEmbedTooLarge(t *testing.T) {
-	t.Parallel()
-
 	prev := MaxEmbeddedBinaryBytes
 	MaxEmbeddedBinaryBytes = 4
 	defer func() { MaxEmbeddedBinaryBytes = prev }()

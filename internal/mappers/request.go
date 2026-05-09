@@ -398,28 +398,30 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 	}
 	mime := normalizeMIME(p.InlineData.MIMEType)
 	data := p.InlineData.Data
-	encoded := base64.StdEncoding.EncodeToString(data)
 
 	switch {
 	case strings.HasPrefix(mime, "image/"):
+		enc := base64.StdEncoding.EncodeToString(data)
 		return krnkmodel.D{
 			"type": "image_url",
 			"image_url": krnkmodel.D{
-				"url": fmt.Sprintf("data:%s;base64,%s", mime, encoded),
+				"url": fmt.Sprintf("data:%s;base64,%s", mime, enc),
 			},
 		}, nil
 	case strings.HasPrefix(mime, "audio/"):
+		enc := base64.StdEncoding.EncodeToString(data)
 		return krnkmodel.D{
 			"type": "input_audio",
 			"input_audio": krnkmodel.D{
-				"data": fmt.Sprintf("data:%s;base64,%s", mime, encoded),
+				"data": fmt.Sprintf("data:%s;base64,%s", mime, enc),
 			},
 		}, nil
 	case strings.HasPrefix(mime, "video/"):
+		enc := base64.StdEncoding.EncodeToString(data)
 		return krnkmodel.D{
 			"type": "video_url",
 			"video_url": krnkmodel.D{
-				"url": fmt.Sprintf("data:%s;base64,%s", mime, encoded),
+				"url": fmt.Sprintf("data:%s;base64,%s", mime, enc),
 			},
 		}, nil
 	}
@@ -438,6 +440,7 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 			MaxEmbeddedBinaryBytes,
 		)
 	}
+	enc := base64.StdEncoding.EncodeToString(data)
 	header := fmt.Sprintf(
 		"[attached binary mime=%s name=%s bytes=%d base64]:",
 		mimeOrPlaceholder(mime),
@@ -446,7 +449,7 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 	)
 	return krnkmodel.D{
 		"type": "text",
-		"text": header + "\n" + encoded,
+		"text": header + "\n" + enc,
 	}, nil
 }
 
