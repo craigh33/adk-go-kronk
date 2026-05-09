@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
+	"sync/atomic"
 	"unicode/utf8"
 
 	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
@@ -15,11 +17,55 @@ import (
 	"google.golang.org/genai"
 )
 
-// MaxEmbeddedBinaryBytes caps raw byte length for non-image/audio/video InlineData
-// that is sent as base64 inside a text block. Override in tests if needed.
+const defaultMaxEmbeddedBinaryLimit = 4 << 20
+
+// maxEmbeddedBinaryLimitAtomic holds the max raw byte length for non-image/audio/video
+// InlineData sent as base64 inside a text block. Reads use atomic.Load; tests swap via
+// setMaxEmbeddedBinaryLimitForTest.
 //
-//nolint:gochecknoglobals // tunable in tests; no config API on the provider
-var MaxEmbeddedBinaryBytes = 4 << 20
+//nolint:gochecknoglobals // single process-wide limit; concurrent-safe via atomic.Uint64
+var maxEmbeddedBinaryLimitAtomic atomic.Uint64
+
+//nolint:gochecknoinits // single Store of default limit at startup
+func init() {
+	maxEmbeddedBinaryLimitAtomic.Store(uint64(defaultMaxEmbeddedBinaryLimit))
+}
+
+func uint64ToPositiveInt(u uint64) int {
+	if u > uint64(math.MaxInt) {
+		return math.MaxInt
+	}
+	return int(u)
+}
+
+func maxEmbeddedBinaryLimit() int {
+	return uint64ToPositiveInt(maxEmbeddedBinaryLimitAtomic.Load())
+}
+
+// MaxEmbeddedBinaryBytes returns the maximum raw byte length for non-media binary
+// inline attachments on the base64-in-text path (default 4 MiB).
+func MaxEmbeddedBinaryBytes() int {
+	return maxEmbeddedBinaryLimit()
+}
+
+func clampUint64ForSwap(n int) uint64 {
+	switch {
+	case n < 0:
+		return 0
+	case uint64(n) > uint64(math.MaxInt):
+		return uint64(math.MaxInt)
+	default:
+		return uint64(n)
+	}
+}
+
+// setMaxEmbeddedBinaryLimitForTest swaps the limit and returns restore for tests only.
+func setMaxEmbeddedBinaryLimitForTest(n int) func() {
+	prev := maxEmbeddedBinaryLimitAtomic.Swap(clampUint64ForSwap(n))
+	return func() {
+		maxEmbeddedBinaryLimitAtomic.Store(prev)
+	}
+}
 
 const (
 	genaiRoleUser   = "user"
@@ -433,11 +479,12 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 		}, nil
 	}
 
-	if len(data) > MaxEmbeddedBinaryBytes {
+	limit := maxEmbeddedBinaryLimit()
+	if len(data) > limit {
 		return nil, fmt.Errorf(
 			"kronk provider: inline attachment exceeds max size (%d bytes > %d)",
 			len(data),
-			MaxEmbeddedBinaryBytes,
+			limit,
 		)
 	}
 	enc := base64.StdEncoding.EncodeToString(data)

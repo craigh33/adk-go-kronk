@@ -384,9 +384,8 @@ func TestRequestFromLLMRequest_CombinedTextAndInlineSamePart(t *testing.T) {
 }
 
 func TestRequestFromLLMRequest_BinaryEmbedTooLarge(t *testing.T) {
-	prev := MaxEmbeddedBinaryBytes
-	MaxEmbeddedBinaryBytes = 4
-	defer func() { MaxEmbeddedBinaryBytes = prev }()
+	restore := setMaxEmbeddedBinaryLimitForTest(4)
+	defer restore()
 
 	req := &model.LLMRequest{
 		Contents: []*genai.Content{{
