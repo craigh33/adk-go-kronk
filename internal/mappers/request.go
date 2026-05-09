@@ -8,11 +8,18 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
 	"google.golang.org/adk/model"
 	"google.golang.org/genai"
 )
+
+// MaxEmbeddedBinaryBytes caps raw byte length for non-image/audio/video InlineData
+// that is sent as base64 inside a text block. Override in tests if needed.
+//
+//nolint:gochecknoglobals // tunable in tests; no config API on the provider
+var MaxEmbeddedBinaryBytes = 4 << 20
 
 const (
 	genaiRoleUser   = "user"
@@ -186,15 +193,33 @@ func (a *userPartAccumulator) flushTextOnly() {
 }
 
 func (a *userPartAccumulator) addPart(p *genai.Part) error {
-	switch {
-	case p.FunctionResponse != nil:
+	if p == nil {
+		return nil
+	}
+	// Order matters: Text before InlineData on the same Part matches Kronk's
+	// ImageMessage / AudioMessage layout (prompt text, then media).
+	if p.FunctionResponse != nil {
 		a.flushTextOnly()
 		toolMsg, err := functionResponseToToolMessage(p.FunctionResponse)
 		if err != nil {
 			return err
 		}
 		a.out = append(a.out, toolMsg)
-	case p.InlineData != nil && len(p.InlineData.Data) > 0:
+		return nil
+	}
+	if p.FileData != nil && p.FileData.FileURI != "" {
+		return fmt.Errorf(
+			"kronk provider does not accept remote FileData URIs (%q); inline the bytes via InlineData instead",
+			p.FileData.FileURI,
+		)
+	}
+	if p.Text != "" {
+		if a.plainText.Len() > 0 {
+			a.plainText.WriteString("\n")
+		}
+		a.plainText.WriteString(p.Text)
+	}
+	if p.InlineData != nil && len(p.InlineData.Data) > 0 {
 		block, err := inlineDataContentBlock(p)
 		if err != nil {
 			return err
@@ -207,16 +232,6 @@ func (a *userPartAccumulator) addPart(p *genai.Part) error {
 			a.plainText.Reset()
 		}
 		a.contentArray = append(a.contentArray, block)
-	case p.FileData != nil && p.FileData.FileURI != "":
-		return fmt.Errorf(
-			"kronk provider does not accept remote FileData URIs (%q); inline the bytes via InlineData instead",
-			p.FileData.FileURI,
-		)
-	case p.Text != "":
-		if a.plainText.Len() > 0 {
-			a.plainText.WriteString("\n")
-		}
-		a.plainText.WriteString(p.Text)
 	}
 	return nil
 }
@@ -378,8 +393,12 @@ func functionResponseToToolMessage(fr *genai.FunctionResponse) (krnkmodel.D, err
 }
 
 func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
+	if p == nil || p.InlineData == nil {
+		return nil, errors.New("inlineDataContentBlock: missing InlineData")
+	}
 	mime := normalizeMIME(p.InlineData.MIMEType)
-	encoded := base64.StdEncoding.EncodeToString(p.InlineData.Data)
+	data := p.InlineData.Data
+	encoded := base64.StdEncoding.EncodeToString(data)
 
 	switch {
 	case strings.HasPrefix(mime, "image/"):
@@ -403,9 +422,61 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 				"url": fmt.Sprintf("data:%s;base64,%s", mime, encoded),
 			},
 		}, nil
-	default:
-		return nil, fmt.Errorf("kronk provider does not support inline mime type %q", p.InlineData.MIMEType)
 	}
+
+	if utf8.Valid(data) {
+		return krnkmodel.D{
+			"type": "text",
+			"text": inlineDataUTF8Body(mime, p.InlineData.DisplayName, string(data)),
+		}, nil
+	}
+
+	if len(data) > MaxEmbeddedBinaryBytes {
+		return nil, fmt.Errorf(
+			"kronk provider: inline attachment exceeds max size (%d bytes > %d)",
+			len(data),
+			MaxEmbeddedBinaryBytes,
+		)
+	}
+	header := fmt.Sprintf(
+		"[attached binary mime=%s name=%s bytes=%d base64]:",
+		mimeOrPlaceholder(mime),
+		displayNameOrDash(p.InlineData.DisplayName),
+		len(data),
+	)
+	return krnkmodel.D{
+		"type": "text",
+		"text": header + "\n" + encoded,
+	}, nil
+}
+
+func mimeOrPlaceholder(mime string) string {
+	if mime == "" {
+		return "(unspecified)"
+	}
+	return mime
+}
+
+func displayNameOrDash(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "-"
+	}
+	return name
+}
+
+func inlineDataUTF8Body(mime, displayName, text string) string {
+	var b strings.Builder
+	b.WriteString("[attached text")
+	if mime != "" {
+		fmt.Fprintf(&b, " mime=%s", mime)
+	}
+	if strings.TrimSpace(displayName) != "" {
+		fmt.Fprintf(&b, " name=%s", strings.TrimSpace(displayName))
+	}
+	b.WriteString("]:\n")
+	b.WriteString(text)
+	return b.String()
 }
 
 func applyInferenceParams(d krnkmodel.D, cfg *genai.GenerateContentConfig) {

@@ -30,9 +30,10 @@ Replace the module path with your fork or published path if you rename the modul
 ```go
 ctx := context.Background()
 
-llm, err := kronk.New(ctx, kronk.Config{
-    ModelFiles: []string{"/path/to/model.gguf"},
-})
+cfg := kronk.Config{ModelFiles: []string{"/path/to/model.gguf"}}
+// For vision / audio / video models, add krnkmodel.WithProjFile("/path/to/mmproj") via cfg.ModelOptions.
+
+llm, err := kronk.New(ctx, cfg)
 if err != nil {
     log.Fatal(err)
 }
@@ -62,21 +63,33 @@ The [`internal/mappers`](internal/mappers/) package holds genai ↔ Kronk conver
 
 ```go
 mdls, _ := models.New()
-mp, _ := ctlg.DownloadModel(ctx, krnk.FmtLogger, "Qwen3-0.6B-Q8_0")
-llm, _ := kronk.New(ctx, kronk.Config{ModelFiles: mp.ModelFiles})
+mp, _ := mdls.Download(ctx, krnk.FmtLogger, "Qwen3-0.6B-Q8_0")
+cfg := kronk.Config{ModelFiles: mp.ModelFiles}
+if mp.ProjFile != "" {
+    cfg.ModelOptions = []krnkmodel.Option{krnkmodel.WithProjFile(mp.ProjFile)}
+}
+llm, _ := kronk.New(ctx, cfg)
 ```
 
-See [`examples/kronk-web-ui`](examples/kronk-web-ui) for a complete runnable example including library and model installation.
+Pass **`krnkmodel.WithProjFile(mp.ProjFile)`** in **`Config.ModelOptions`** when the catalog download includes an mmproj (required for Kronk’s image / audio / video pipeline).
+
+See [`examples/kronk-web-ui`](examples/kronk-web-ui) for a complete runnable example including library and model installation (it passes **`ProjFile`** when present).
 
 ## Examples
 
 Each example has its own `README.md` and `Makefile`:
 
-- [`examples/kronk-web-ui`](examples/kronk-web-ui): ADK local web UI + REST API launcher backed by a Kronk-loaded GGUF model. Controlled via `KRONK_MODEL_ID` (catalog model ID, default `Qwen3-0.6B-Q8_0`) or `KRONK_MODEL_URL` (direct GGUF URL). First run downloads the llama.cpp libraries, the Kronk catalog, and the selected model; subsequent runs reuse the cache.
+- [`examples/kronk-web-ui`](examples/kronk-web-ui): ADK local web UI + REST API launcher backed by a Kronk-loaded GGUF model. Controlled via `KRONK_MODEL_ID` (catalog model ID, default `Qwen3-0.6B-Q8_0`) or `KRONK_MODEL_URL` (direct GGUF URL). First run downloads the llama.cpp libraries, the Kronk catalog, and the selected model; subsequent runs reuse the cache. Passes through **`ProjFile`** from the catalog download when present so multimodal models receive the mmproj.
+
+- [`examples/kronk-files`](examples/kronk-files): CLI that runs **`RequestFromLLMRequest`** only (`-dry-run`) to inspect how file bytes map to Kronk message blocks—no model load. Useful for debugging uploads and MIME sniffing (`http.DetectContentType` by default).
 
 ```bash
 export KRONK_MODEL_ID=Qwen3-0.6B-Q8_0
 make -C examples/kronk-web-ui run
+```
+
+```bash
+make -C examples/kronk-files run ARGS='-dry-run -path ./photo.jpg'
 ```
 
 ## How it maps to Kronk
@@ -85,7 +98,9 @@ make -C examples/kronk-web-ui run
 - **System instruction**: `GenerateContentConfig.SystemInstruction` is prepended as a `role:"system"` message.
 - **Inference params**: `Temperature`, `TopP`, `TopK`, `MaxOutputTokens`, `StopSequences`, `Seed`, `FrequencyPenalty`, and `PresencePenalty` are passed through to Kronk.
 - **Tools**: only `genai.Tool.FunctionDeclarations` are mapped (as OpenAI-shaped function tool entries with lowercased JSON Schema types). Non-function variants (Google Search, Code Execution, Retrieval, MCP servers, Computer Use, File Search, Google Maps, URL Context, etc.) are rejected early with a clear provider error. Use ADK's [`mcptoolset`](https://pkg.go.dev/google.golang.org/adk/tool/mcptoolset) to bring MCP tools in as function declarations.
-- **Multimodal input**: inline `image/*`, `audio/*`, and `video/*` bytes on user turns are sent as OpenAI-style `image_url` / `input_audio` / `video_url` blocks. Remote `FileData` URIs and inline media on model turns are rejected — inline the bytes on the user turn instead.
+- **Multimodal input**: inline `image/*`, `audio/*`, and `video/*` bytes on user turns are sent as OpenAI-style `image_url` / `input_audio` / `video_url` data URLs (set `Blob.MIMEType` accordingly—callers often use `http.DetectContentType` or the browser-reported type). **Prompt text before attachment** in the same `genai.Part` maps to **text blocks before** media, matching Kronk’s `ImageMessage` / `AudioMessage` layout.
+- **Other inline bytes**: if the MIME type is not `image/` / `audio/` / `video/`, valid **UTF-8** payloads become a single `text` part with a short header; otherwise bytes are embedded as **base64 inside `text`** (default max **4 MiB** raw bytes before encoding). No filename-based MIME guessing inside the provider—set `MIMEType` at the edge.
+- **Multimodal engine setup**: Kronk requires a **projection (mmproj) file** for real vision/audio/video inference. Pass **`krnkmodel.WithProjFile`** via **`kronk.Config.ModelOptions`** when your model download provides `ProjFile` (see [`examples/kronk-web-ui`](examples/kronk-web-ui)).
 - **Streaming**: when streaming is enabled the provider calls `ChatStreaming`, emits text deltas as `Partial:true` responses, and buffers tool calls, reasoning, usage, and finish reason into the final `TurnComplete:true` response.
 - **Usage**: Kronk `Usage` maps to ADK `GenerateContentResponseUsageMetadata` (`PromptTokenCount`, `CandidatesTokenCount`, `TotalTokenCount`).
 
@@ -97,6 +112,7 @@ make -C examples/kronk-web-ui run
 - **Remote `FileData` unsupported**: Kronk loads local models and does not fetch arbitrary remote URIs; callers must inline bytes via `InlineData`.
 - **Default request timeout**: Kronk's `Chat` / `ChatStreaming` APIs require a context deadline. When the caller does not provide one the provider attaches a 2-minute default — override it with `context.WithTimeout` for long-running prompts.
 - **No embeddings / rerank surface**: ADK `model.LLM` is chat-only; call the underlying `*kronk.Kronk` directly (via `Model.Engine()`) for embedding or rerank features if you need them.
+- **Large binary attachments**: non-media inline payloads embedded as base64 text are rejected above **4 MiB** raw bytes by default.
 
 ## Contributing
 

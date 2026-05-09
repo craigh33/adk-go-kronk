@@ -17,6 +17,7 @@ import (
 	"time"
 
 	krnk "github.com/ardanlabs/kronk/sdk/kronk"
+	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
 	"github.com/ardanlabs/kronk/sdk/tools/defaults"
 	"github.com/ardanlabs/kronk/sdk/tools/libs"
 	"github.com/ardanlabs/kronk/sdk/tools/models"
@@ -56,9 +57,14 @@ func run() error {
 		return fmt.Errorf("install kronk runtime: %w", err)
 	}
 
-	llm, err := kronkllm.New(ctx, kronkllm.Config{
+	cfg := kronkllm.Config{
 		ModelFiles: mp.ModelFiles,
-	})
+	}
+	if strings.TrimSpace(mp.ProjFile) != "" {
+		cfg.ModelOptions = append(cfg.ModelOptions, krnkmodel.WithProjFile(mp.ProjFile))
+	}
+
+	llm, err := kronkllm.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("build kronk llm provider: %w", err)
 	}
