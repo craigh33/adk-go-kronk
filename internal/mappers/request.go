@@ -49,14 +49,10 @@ func MaxEmbeddedBinaryBytes() int {
 }
 
 func clampUint64ForSwap(n int) uint64 {
-	switch {
-	case n < 0:
+	if n < 0 {
 		return 0
-	case uint64(n) > uint64(math.MaxInt):
-		return uint64(math.MaxInt)
-	default:
-		return uint64(n)
 	}
+	return uint64(n)
 }
 
 // setMaxEmbeddedBinaryLimitForTest swaps the limit and returns restore for tests only.
