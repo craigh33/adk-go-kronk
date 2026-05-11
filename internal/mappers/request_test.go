@@ -292,19 +292,111 @@ func TestRequestFromLLMRequest_RejectsRemoteFileData(t *testing.T) {
 	}
 }
 
-func TestRequestFromLLMRequest_RejectsUnsupportedInlineMime(t *testing.T) {
+func TestRequestFromLLMRequest_ApplicationPDFBinaryEmbed(t *testing.T) {
 	t.Parallel()
 
 	req := &model.LLMRequest{
 		Contents: []*genai.Content{{
 			Role: genaiRoleUser,
 			Parts: []*genai.Part{
-				{InlineData: &genai.Blob{MIMEType: "application/pdf", Data: []byte{1, 2}}},
+				{InlineData: &genai.Blob{MIMEType: "application/pdf", Data: []byte{0xff, 0xfe}}},
+			},
+		}},
+	}
+	d, err := RequestFromLLMRequest(req, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	msgs, _ := d["messages"].([]krnkmodel.D)
+	arr, ok := msgs[0]["content"].([]krnkmodel.D)
+	if !ok || len(arr) != 1 {
+		t.Fatalf("expected one content block, got %#v", msgs[0]["content"])
+	}
+	if arr[0]["type"] != "text" {
+		t.Fatalf("expected text block for binary embed, got %#v", arr[0])
+	}
+	body := arr[0]["text"].(string)
+	if !strings.Contains(body, "[attached binary mime=application/pdf") {
+		t.Fatalf("expected binary attachment prefix, got %q", body)
+	}
+	if !strings.Contains(body, "\n") || len(body) < 20 {
+		t.Fatalf("expected base64 payload after header: %q", body)
+	}
+}
+
+func TestRequestFromLLMRequest_InlineUTF8TextAttachment(t *testing.T) {
+	t.Parallel()
+
+	req := &model.LLMRequest{
+		Contents: []*genai.Content{{
+			Role: genaiRoleUser,
+			Parts: []*genai.Part{
+				{InlineData: &genai.Blob{
+					MIMEType:    "text/plain",
+					DisplayName: "memo.txt",
+					Data:        []byte("hello world"),
+				}},
+			},
+		}},
+	}
+	d, err := RequestFromLLMRequest(req, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	msgs, _ := d["messages"].([]krnkmodel.D)
+	arr := msgs[0]["content"].([]krnkmodel.D)
+	body := arr[0]["text"].(string)
+	if !strings.Contains(body, "[attached text mime=text/plain name=memo.txt]:") {
+		t.Fatalf("unexpected utf8 wrapper: %q", body)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(body), "hello world") {
+		t.Fatalf("expected payload suffix hello world, got %q", body)
+	}
+}
+
+func TestRequestFromLLMRequest_CombinedTextAndInlineSamePart(t *testing.T) {
+	t.Parallel()
+
+	req := &model.LLMRequest{
+		Contents: []*genai.Content{{
+			Role: genaiRoleUser,
+			Parts: []*genai.Part{{
+				Text:       "Summarize this",
+				InlineData: &genai.Blob{MIMEType: "image/png", Data: []byte{0x89, 0x50}},
+			}},
+		}},
+	}
+	d, err := RequestFromLLMRequest(req, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	msgs, _ := d["messages"].([]krnkmodel.D)
+	arr := msgs[0]["content"].([]krnkmodel.D)
+	if len(arr) != 2 {
+		t.Fatalf("expected text + image, got %d blocks", len(arr))
+	}
+	if arr[0]["type"] != "text" || arr[0]["text"] != "Summarize this" {
+		t.Fatalf("expected prompt text first, got %#v", arr[0])
+	}
+	if arr[1]["type"] != "image_url" {
+		t.Fatalf("expected image_url second, got %#v", arr[1])
+	}
+}
+
+func TestRequestFromLLMRequest_BinaryEmbedTooLarge(t *testing.T) {
+	restore := setMaxEmbeddedBinaryLimitForTest(4)
+	defer restore()
+
+	req := &model.LLMRequest{
+		Contents: []*genai.Content{{
+			Role: genaiRoleUser,
+			Parts: []*genai.Part{
+				{InlineData: &genai.Blob{MIMEType: "application/pdf", Data: []byte{0xff, 1, 2, 3, 5}}},
 			},
 		}},
 	}
 	if _, err := RequestFromLLMRequest(req, false); err == nil {
-		t.Fatal("expected error for application/pdf inline data")
+		t.Fatal("expected error when binary attachment exceeds max size")
 	}
 }
 
