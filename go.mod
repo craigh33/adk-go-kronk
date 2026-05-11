@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/ardanlabs/kronk v1.25.0
 	google.golang.org/adk v1.2.0
-	google.golang.org/genai v1.55.0
+	google.golang.org/genai v1.56.0
 )
 
 require (
