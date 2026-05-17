@@ -136,11 +136,11 @@ func startKronkAgentServer(ctx context.Context) (string, func(), error) {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		if serr := httpServer.Shutdown(shutdownCtx); serr != nil && !errors.Is(serr, http.ErrServerClosed) {
-			log.Printf("shutdown A2A server: %v", serr)
-		}
 		if cerr := listener.Close(); cerr != nil && !errors.Is(cerr, net.ErrClosed) {
 			log.Printf("close A2A listener: %v", cerr)
+		}
+		if serr := httpServer.Shutdown(shutdownCtx); serr != nil && !errors.Is(serr, http.ErrServerClosed) {
+			log.Printf("shutdown A2A server: %v", serr)
 		}
 		closeAgent()
 	}
