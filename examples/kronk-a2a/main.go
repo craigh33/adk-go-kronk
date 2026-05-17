@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -88,6 +89,13 @@ func startKronkAgentServer(ctx context.Context) (string, func(), error) {
 	baseURL := &url.URL{Scheme: "http", Host: listener.Addr().String()}
 	log.Printf("Starting A2A server on %s", baseURL.String())
 
+	httpServer := &http.Server{
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	go func() {
 		agentPath := "/invoke"
 		agentCard := &a2a.AgentCard{
@@ -114,19 +122,30 @@ func startKronkAgentServer(ctx context.Context) (string, func(), error) {
 		requestHandler := a2asrv.NewHandler(executor)
 		mux.Handle(agentPath, a2asrv.NewJSONRPCHandler(requestHandler))
 
-		httpServer := &http.Server{
-			Handler:           mux,
-			ReadHeaderTimeout: 10 * time.Second,
-			ReadTimeout:       30 * time.Second,
-			WriteTimeout:      30 * time.Second,
-			IdleTimeout:       60 * time.Second,
-		}
+		httpServer.Handler = mux
 
-		err = httpServer.Serve(listener)
-		log.Printf("A2A server stopped: %v", err)
+		serveErr := httpServer.Serve(listener)
+		if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			log.Printf("A2A server stopped with error: %v", serveErr)
+			return
+		}
+		log.Printf("A2A server stopped")
 	}()
 
-	return baseURL.String(), closeAgent, nil
+	closeServerAndAgent := func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if serr := httpServer.Shutdown(shutdownCtx); serr != nil && !errors.Is(serr, http.ErrServerClosed) {
+			log.Printf("shutdown A2A server: %v", serr)
+		}
+		if cerr := listener.Close(); cerr != nil && !errors.Is(cerr, net.ErrClosed) {
+			log.Printf("close A2A listener: %v", cerr)
+		}
+		closeAgent()
+	}
+
+	return baseURL.String(), closeServerAndAgent, nil
 }
 
 func newKronkAgent(ctx context.Context) (agent.Agent, func(), error) {
