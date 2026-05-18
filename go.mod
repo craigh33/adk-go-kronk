@@ -6,7 +6,7 @@ require (
 	github.com/a2aproject/a2a-go v0.3.13
 	github.com/ardanlabs/kronk v1.25.0
 	google.golang.org/adk v1.2.0
-	google.golang.org/genai v1.56.0
+	google.golang.org/genai v1.57.0
 )
 
 require (
