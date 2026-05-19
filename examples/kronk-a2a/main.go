@@ -50,11 +50,11 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
-	a2aServerAddress, closeAgent, err := startKronkAgentServer(ctx)
+	a2aServerAddress, shutdown, err := startKronkAgentServer(ctx)
 	if err != nil {
 		return err
 	}
-	defer closeAgent()
+	defer shutdown()
 
 	remoteAgent, err := remoteagent.NewA2A(remoteagent.A2AConfig{
 		Name:            "A2A Kronk assistant",
@@ -93,8 +93,8 @@ func startKronkAgentServer(ctx context.Context) (string, func(), error) {
 
 	httpServer := &http.Server{
 		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		ReadTimeout:       0,
+		WriteTimeout:      0,
 		IdleTimeout:       60 * time.Second,
 	}
 
