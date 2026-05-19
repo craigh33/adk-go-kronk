@@ -14,8 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/a2aproject/a2a-go/a2a"
-	"github.com/a2aproject/a2a-go/a2asrv"
+	legacya2a "github.com/a2aproject/a2a-go/a2a"
+	"github.com/a2aproject/a2a-go/v2/a2a"
+	"github.com/a2aproject/a2a-go/v2/a2acompat/a2av0"
+	"github.com/a2aproject/a2a-go/v2/a2asrv"
 	krnk "github.com/ardanlabs/kronk/sdk/kronk"
 	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
 	"github.com/ardanlabs/kronk/sdk/tools/defaults"
@@ -98,29 +100,36 @@ func startKronkAgentServer(ctx context.Context) (string, func(), error) {
 
 	go func() {
 		agentPath := "/invoke"
+		invokeURL := baseURL.JoinPath(agentPath).String()
 		agentCard := &a2a.AgentCard{
 			Name:               a.Name(),
 			Description:        a.Description(),
 			DefaultInputModes:  []string{"text/plain"},
 			DefaultOutputModes: []string{"text/plain"},
-			Skills:             adka2a.BuildAgentSkills(a),
-			PreferredTransport: a2a.TransportProtocolJSONRPC,
-			URL:                baseURL.JoinPath(agentPath).String(),
-			Capabilities:       a2a.AgentCapabilities{Streaming: true},
+			Skills:             toV2Skills(adka2a.BuildAgentSkills(a)),
+			SupportedInterfaces: []*a2a.AgentInterface{
+				{
+					URL:             invokeURL,
+					ProtocolBinding: a2a.TransportProtocolJSONRPC,
+					ProtocolVersion: a2av0.Version,
+				},
+			},
+			Capabilities: a2a.AgentCapabilities{Streaming: true},
 		}
+		cardProducer := a2av0.NewStaticAgentCardProducer(agentCard)
 
 		mux := http.NewServeMux()
-		mux.Handle(a2asrv.WellKnownAgentCardPath, a2asrv.NewStaticAgentCardHandler(agentCard))
+		mux.Handle(a2asrv.WellKnownAgentCardPath, a2asrv.NewAgentCardHandler(cardProducer))
 
-		executor := adka2a.NewExecutor(adka2a.ExecutorConfig{
+		executor := a2av0.NewAgentExecutor(adka2a.NewExecutor(adka2a.ExecutorConfig{
 			RunnerConfig: runner.Config{
 				AppName:        a.Name(),
 				Agent:          a,
 				SessionService: session.InMemoryService(),
 			},
-		})
+		}))
 		requestHandler := a2asrv.NewHandler(executor)
-		mux.Handle(agentPath, a2asrv.NewJSONRPCHandler(requestHandler))
+		mux.Handle(agentPath, a2av0.NewJSONRPCHandler(requestHandler))
 
 		httpServer.Handler = mux
 
@@ -192,6 +201,22 @@ func newKronkAgent(ctx context.Context) (agent.Agent, func(), error) {
 		return nil, nil, fmt.Errorf("agent: %w", err)
 	}
 	return a, closeAgent, nil
+}
+
+func toV2Skills(skills []legacya2a.AgentSkill) []a2a.AgentSkill {
+	out := make([]a2a.AgentSkill, len(skills))
+	for i, s := range skills {
+		out[i] = a2a.AgentSkill{
+			ID:          s.ID,
+			Name:        s.Name,
+			Description: s.Description,
+			Tags:        s.Tags,
+			Examples:    s.Examples,
+			InputModes:  s.InputModes,
+			OutputModes: s.OutputModes,
+		}
+	}
+	return out
 }
 
 // installSystem installs llama.cpp libraries, then fetches the selected GGUF
