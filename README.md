@@ -81,11 +81,17 @@ Each example has its own `README.md` and `Makefile`:
 
 - [`examples/kronk-web-ui`](examples/kronk-web-ui): ADK local web UI + REST API launcher backed by a Kronk-loaded GGUF model. Controlled via `KRONK_MODEL_ID` (catalog model ID, default `Qwen3-0.6B-Q8_0`) or `KRONK_MODEL_URL` (direct GGUF URL). First run downloads the llama.cpp libraries, the Kronk catalog, and the selected model; subsequent runs reuse the cache. Passes through **`ProjFile`** from the catalog download when present so multimodal models receive the mmproj.
 
+- [`examples/kronk-a2a`](examples/kronk-a2a): in-process A2A server backed by a Kronk-loaded GGUF model, then consumed as a remote ADK agent. Uses the same `KRONK_MODEL_ID` / `KRONK_MODEL_URL` setup as the web UI example.
+
 - [`examples/kronk-files`](examples/kronk-files): CLI that runs **`RequestFromLLMRequest`** only (`-dry-run`) to inspect how file bytes map to Kronk message blocks—no model load. Useful for debugging uploads and MIME sniffing (`http.DetectContentType` by default).
 
 ```bash
 export KRONK_MODEL_ID=Qwen3-0.6B-Q8_0
 make -C examples/kronk-web-ui run
+```
+
+```bash
+make -C examples/kronk-a2a run ARGS='web api webui'
 ```
 
 ```bash

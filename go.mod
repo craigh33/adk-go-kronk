@@ -3,6 +3,7 @@ module github.com/craigh33/adk-go-kronk
 go 1.26.0
 
 require (
+	github.com/a2aproject/a2a-go/v2 v2.3.1
 	github.com/ardanlabs/kronk v1.26.4
 	google.golang.org/adk v1.4.0
 	google.golang.org/genai v1.58.0
@@ -21,7 +22,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.56.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.56.0 // indirect
 	github.com/a2aproject/a2a-go v0.3.15 // indirect
-	github.com/a2aproject/a2a-go/v2 v2.3.1 // indirect
 	github.com/ardanlabs/jinja v1.4.0 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.7 // indirect
