@@ -13,7 +13,7 @@ import (
 
 	krnk "github.com/ardanlabs/kronk/sdk/kronk"
 	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
-	"google.golang.org/adk/model"
+	"google.golang.org/adk/v2/model"
 
 	"github.com/craigh33/adk-go-kronk/internal/mappers"
 )

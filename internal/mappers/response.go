@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
-	"google.golang.org/adk/model"
+	"google.golang.org/adk/v2/model"
 	"google.golang.org/genai"
 )
 
@@ -27,7 +27,7 @@ const customMetadataKeyModel = "kronk_model_id"
 func LLMResponseFromChatResponse(resp krnkmodel.ChatResponse) (*model.LLMResponse, error) {
 	if len(resp.Choices) == 0 {
 		return &model.LLMResponse{
-			Content:        &genai.Content{Role: "model", Parts: []*genai.Part{{Text: ""}}},
+			Content:        &genai.Content{Role: genaiRoleModel, Parts: []*genai.Part{{Text: ""}}},
 			FinishReason:   genai.FinishReasonOther,
 			UsageMetadata:  usageToGenai(resp.Usage),
 			CustomMetadata: customMetadataFromResponse(resp),
@@ -58,7 +58,7 @@ func LLMResponseFromChatResponse(resp krnkmodel.ChatResponse) (*model.LLMRespons
 	}
 
 	return &model.LLMResponse{
-		Content:        &genai.Content{Role: "model", Parts: parts},
+		Content:        &genai.Content{Role: genaiRoleModel, Parts: parts},
 		FinishReason:   finishReasonToGenai(reason),
 		UsageMetadata:  usageToGenai(resp.Usage),
 		CustomMetadata: customMetadataFromResponse(resp),
@@ -153,7 +153,7 @@ func StreamChunkToLLMResponse(state *StreamState, resp krnkmodel.ChatResponse) (
 		state.lastYieldedLen = state.text.Len()
 		return &model.LLMResponse{
 			Content: &genai.Content{
-				Role:  "model",
+				Role:  genaiRoleModel,
 				Parts: []*genai.Part{{Text: out}},
 			},
 			Partial: true,
@@ -169,7 +169,7 @@ func StreamChunkToLLMResponse(state *StreamState, resp krnkmodel.ChatResponse) (
 func FinalStreamResponse(state *StreamState) *model.LLMResponse {
 	if state == nil {
 		return &model.LLMResponse{
-			Content:      &genai.Content{Role: "model", Parts: []*genai.Part{{Text: ""}}},
+			Content:      &genai.Content{Role: genaiRoleModel, Parts: []*genai.Part{{Text: ""}}},
 			FinishReason: genai.FinishReasonOther,
 			TurnComplete: true,
 		}
@@ -205,7 +205,7 @@ func FinalStreamResponse(state *StreamState) *model.LLMResponse {
 	}
 
 	return &model.LLMResponse{
-		Content:        &genai.Content{Role: "model", Parts: parts},
+		Content:        &genai.Content{Role: genaiRoleModel, Parts: parts},
 		FinishReason:   finishReasonToGenai(state.finishReason),
 		UsageMetadata:  usageToGenai(state.lastUsage),
 		CustomMetadata: custom,

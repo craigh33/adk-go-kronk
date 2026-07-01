@@ -59,9 +59,9 @@ func appendFunctionDeclarationDocs(docs []krnkmodel.D, t *genai.Tool) ([]krnkmod
 			return nil, fmt.Errorf("tool %q: %w", fd.Name, err)
 		}
 		docs = append(docs, krnkmodel.D{
-			"type": "function",
-			"function": krnkmodel.D{
-				"name":        fd.Name,
+			jsonType: jsonFunction,
+			jsonFunction: krnkmodel.D{
+				jsonName:      fd.Name,
 				"description": fd.Description,
 				"parameters":  params,
 			},
@@ -120,8 +120,8 @@ func functionParametersToJSONSchema(fd *genai.FunctionDeclaration) (map[string]a
 	}
 	if fd.Parameters == nil {
 		return map[string]any{
-			"type":       "object",
-			"properties": map[string]any{},
+			jsonType:       jsonObject,
+			jsonProperties: map[string]any{},
 		}, nil
 	}
 	b, err := json.Marshal(fd.Parameters)
@@ -146,7 +146,7 @@ func normalizeSchemaTypes(v any) {
 	switch m := v.(type) {
 	case map[string]any:
 		for k, val := range m {
-			if k == "type" {
+			if k == jsonType {
 				switch t := val.(type) {
 				case string:
 					m[k] = strings.ToLower(t)
@@ -182,7 +182,7 @@ func toolChoiceFromGenai(cfg *genai.GenerateContentConfig) string {
 	}
 	switch cfg.ToolConfig.FunctionCallingConfig.Mode {
 	case genai.FunctionCallingConfigModeAny:
-		return "required"
+		return jsonRequired
 	case genai.FunctionCallingConfigModeNone:
 		return "none"
 	case genai.FunctionCallingConfigModeAuto:

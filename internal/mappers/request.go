@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 
 	krnkmodel "github.com/ardanlabs/kronk/sdk/kronk/model"
-	"google.golang.org/adk/model"
+	"google.golang.org/adk/v2/model"
 	"google.golang.org/genai"
 )
 
@@ -67,6 +67,17 @@ const (
 	genaiRoleUser   = "user"
 	genaiRoleModel  = "model"
 	genaiRoleSystem = "system"
+
+	jsonContent    = "content"
+	jsonFunction   = "function"
+	jsonImageURL   = "image_url"
+	jsonName       = "name"
+	jsonObject     = "object"
+	jsonProperties = "properties"
+	jsonRequired   = "required"
+	jsonRole       = "role"
+	jsonText       = "text"
+	jsonType       = "type"
 )
 
 // MaybeAppendUserContent mirrors the Gemini / Bedrock provider behavior so
@@ -268,8 +279,8 @@ func (a *userPartAccumulator) addPart(p *genai.Part) error {
 		}
 		if a.plainText.Len() > 0 {
 			a.contentArray = append(a.contentArray, krnkmodel.D{
-				"type": "text",
-				"text": a.plainText.String(),
+				jsonType: jsonText,
+				jsonText: a.plainText.String(),
 			})
 			a.plainText.Reset()
 		}
@@ -282,14 +293,14 @@ func (a *userPartAccumulator) finalize() []krnkmodel.D {
 	if len(a.contentArray) > 0 {
 		if a.plainText.Len() > 0 {
 			a.contentArray = append(a.contentArray, krnkmodel.D{
-				"type": "text",
-				"text": a.plainText.String(),
+				jsonType: jsonText,
+				jsonText: a.plainText.String(),
 			})
 			a.plainText.Reset()
 		}
 		a.out = append(a.out, krnkmodel.D{
-			"role":    krnkmodel.RoleUser,
-			"content": a.contentArray,
+			jsonRole:    krnkmodel.RoleUser,
+			jsonContent: a.contentArray,
 		})
 	}
 	a.flushTextOnly()
@@ -317,12 +328,12 @@ func modelContentToMessage(parts []*genai.Part) (krnkmodel.D, error) {
 	}
 
 	msg := krnkmodel.D{
-		"role": krnkmodel.RoleAssistant,
+		jsonRole: krnkmodel.RoleAssistant,
 	}
 	if text.Len() > 0 {
-		msg["content"] = text.String()
+		msg[jsonContent] = text.String()
 	} else {
-		msg["content"] = ""
+		msg[jsonContent] = ""
 	}
 	if reasoning.Len() > 0 {
 		msg["reasoning_content"] = reasoning.String()
@@ -384,10 +395,10 @@ func functionCallToToolCall(fc *genai.FunctionCall) (krnkmodel.D, error) {
 		argsJSON = string(b)
 	}
 	return krnkmodel.D{
-		"id":   id,
-		"type": "function",
-		"function": krnkmodel.D{
-			"name":      fc.Name,
+		"id":     id,
+		jsonType: jsonFunction,
+		jsonFunction: krnkmodel.D{
+			jsonName:    fc.Name,
 			"arguments": argsJSON,
 		},
 	}, nil
@@ -427,10 +438,10 @@ func functionResponseToToolMessage(fr *genai.FunctionResponse) (krnkmodel.D, err
 	}
 
 	return krnkmodel.D{
-		"role":         krnkmodel.RoleTool,
-		"name":         fr.Name,
+		jsonRole:       krnkmodel.RoleTool,
+		jsonName:       fr.Name,
 		"tool_call_id": id,
-		"content":      content,
+		jsonContent:    content,
 	}, nil
 }
 
@@ -445,15 +456,15 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 	case strings.HasPrefix(mime, "image/"):
 		enc := base64.StdEncoding.EncodeToString(data)
 		return krnkmodel.D{
-			"type": "image_url",
-			"image_url": krnkmodel.D{
+			jsonType: jsonImageURL,
+			jsonImageURL: krnkmodel.D{
 				"url": fmt.Sprintf("data:%s;base64,%s", mime, enc),
 			},
 		}, nil
 	case strings.HasPrefix(mime, "audio/"):
 		enc := base64.StdEncoding.EncodeToString(data)
 		return krnkmodel.D{
-			"type": "input_audio",
+			jsonType: "input_audio",
 			"input_audio": krnkmodel.D{
 				"data": fmt.Sprintf("data:%s;base64,%s", mime, enc),
 			},
@@ -461,7 +472,7 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 	case strings.HasPrefix(mime, "video/"):
 		enc := base64.StdEncoding.EncodeToString(data)
 		return krnkmodel.D{
-			"type": "video_url",
+			jsonType: "video_url",
 			"video_url": krnkmodel.D{
 				"url": fmt.Sprintf("data:%s;base64,%s", mime, enc),
 			},
@@ -470,8 +481,8 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 
 	if utf8.Valid(data) {
 		return krnkmodel.D{
-			"type": "text",
-			"text": inlineDataUTF8Body(mime, p.InlineData.DisplayName, string(data)),
+			jsonType: jsonText,
+			jsonText: inlineDataUTF8Body(mime, p.InlineData.DisplayName, string(data)),
 		}, nil
 	}
 
@@ -491,8 +502,8 @@ func inlineDataContentBlock(p *genai.Part) (krnkmodel.D, error) {
 		len(data),
 	)
 	return krnkmodel.D{
-		"type": "text",
-		"text": header + "\n" + enc,
+		jsonType: jsonText,
+		jsonText: header + "\n" + enc,
 	}, nil
 }
 

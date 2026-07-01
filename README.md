@@ -8,13 +8,13 @@
 
 # adk-go-kronk
 
-[kronk](https://github.com/ardanlabs/kronk) implementation of the [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/model#LLM) interface for [adk-go](https://github.com/google/adk-go), so you can run agents on any Kronk-supported local GGUF model with the same ADK APIs you use for Gemini.
+[kronk](https://github.com/ardanlabs/kronk) implementation of the [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/v2/model#LLM) interface for [adk-go](https://github.com/google/adk-go), so you can run agents on any Kronk-supported local GGUF model with the same ADK APIs you use for Gemini.
 
 **Other providers:** [adk-go-bedrock](https://github.com/craigh33/adk-go-bedrock) · [adk-go-ollama](https://github.com/craigh33/adk-go-ollama)
 
 ## Requirements
 
-- **Go** 1.26+ (aligned with `google.golang.org/adk`)
+- **Go** 1.26+ (aligned with `google.golang.org/adk/v2`)
 - Enough disk space and (optionally) GPU for the selected GGUF model. The first run of any Kronk-backed program downloads the llama.cpp libraries, the Kronk model catalog, and the chosen model into Kronk's default install directories; subsequent runs reuse the cached artifacts. See the [Kronk README](https://github.com/ardanlabs/kronk#readme) for platform / GPU support.
 
 ## Install
@@ -53,7 +53,7 @@ if err != nil {
 // llm.GenerateContent(ctx, req, stream) directly.
 ```
 
-The provider implements [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/model#LLM) on top of a loaded [`*kronk.Kronk`](https://pkg.go.dev/github.com/ardanlabs/kronk/sdk/kronk#Kronk) engine. The convenience constructor `kronk.New` owns the engine lifecycle; use `kronk.NewWithKronk` if you already have an engine you want to reuse.
+The provider implements [`model.LLM`](https://pkg.go.dev/google.golang.org/adk/v2/model#LLM) on top of a loaded [`*kronk.Kronk`](https://pkg.go.dev/github.com/ardanlabs/kronk/sdk/kronk#Kronk) engine. The convenience constructor `kronk.New` owns the engine lifecycle; use `kronk.NewWithKronk` if you already have an engine you want to reuse.
 
 The [`internal/mappers`](internal/mappers/) package holds genai ↔ Kronk conversions (requests, responses, tools, usage); the public provider surface is [`kronk`](kronk/).
 
@@ -103,7 +103,7 @@ make -C examples/kronk-files run ARGS='-dry-run -path ./photo.jpg'
 - **Messages**: `genai` roles `user` and `model` map to Kronk `user` and `assistant`. `FunctionResponse` parts are emitted as standalone `role:"tool"` messages with `tool_call_id` so Kronk can thread them back to the originating tool call.
 - **System instruction**: `GenerateContentConfig.SystemInstruction` is prepended as a `role:"system"` message.
 - **Inference params**: `Temperature`, `TopP`, `TopK`, `MaxOutputTokens`, `StopSequences`, `Seed`, `FrequencyPenalty`, and `PresencePenalty` are passed through to Kronk.
-- **Tools**: only `genai.Tool.FunctionDeclarations` are mapped (as OpenAI-shaped function tool entries with lowercased JSON Schema types). Non-function variants (Google Search, Code Execution, Retrieval, MCP servers, Computer Use, File Search, Google Maps, URL Context, etc.) are rejected early with a clear provider error. Use ADK's [`mcptoolset`](https://pkg.go.dev/google.golang.org/adk/tool/mcptoolset) to bring MCP tools in as function declarations.
+- **Tools**: only `genai.Tool.FunctionDeclarations` are mapped (as OpenAI-shaped function tool entries with lowercased JSON Schema types). Non-function variants (Google Search, Code Execution, Retrieval, MCP servers, Computer Use, File Search, Google Maps, URL Context, etc.) are rejected early with a clear provider error. Use ADK's [`mcptoolset`](https://pkg.go.dev/google.golang.org/adk/v2/tool/mcptoolset) to bring MCP tools in as function declarations.
 - **Multimodal input**: inline `image/*`, `audio/*`, and `video/*` bytes on user turns are sent as OpenAI-style `image_url` / `input_audio` / `video_url` data URLs (set `Blob.MIMEType` accordingly—callers often use `http.DetectContentType` or the browser-reported type). **Prompt text before attachment** in the same `genai.Part` maps to **text blocks before** media, matching Kronk’s `ImageMessage` / `AudioMessage` layout.
 - **Other inline bytes**: if the MIME type is not `image/` / `audio/` / `video/`, valid **UTF-8** payloads become a single `text` part with a short header; otherwise bytes are embedded as **base64 inside `text`** (default max **4 MiB** raw bytes before encoding). No filename-based MIME guessing inside the provider—set `MIMEType` at the edge.
 - **Multimodal engine setup**: Kronk requires a **projection (mmproj) file** for real vision/audio/video inference. Pass **`krnkmodel.WithProjFile`** via **`kronk.Config.ModelOptions`** when your model download provides `ProjFile` (see [`examples/kronk-web-ui`](examples/kronk-web-ui)).
