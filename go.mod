@@ -5,9 +5,11 @@ go 1.26.0
 require (
 	github.com/a2aproject/a2a-go/v2 v2.3.1
 	github.com/ardanlabs/kronk v1.28.5
-	google.golang.org/adk v1.4.0
+	google.golang.org/adk/v2 v2.0.0
 	google.golang.org/genai v1.62.0
 )
+
+require github.com/google/jsonschema-go v0.4.3 // indirect
 
 require (
 	cel.dev/expr v0.25.2 // indirect
