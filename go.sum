@@ -34,8 +34,8 @@ github.com/a2aproject/a2a-go/v2 v2.3.1 h1:QWMdOX2UsJ8BJmjs952eo1FRyGsOVl0gFCKeM7
 github.com/a2aproject/a2a-go/v2 v2.3.1/go.mod h1:mkZr8y2bUgAVQsjs/5fHK7xrRlAHDybMEyxWh2tKRC8=
 github.com/ardanlabs/jinja v1.4.0 h1:9iE0/wF4zhcws1CYZCWqJTQP8YuhC4FjycBGzCTuOFw=
 github.com/ardanlabs/jinja v1.4.0/go.mod h1:aXXzlJfjA+T3XNKA/YT5ZtDq2VJxt5a5siZ8cl9B35Q=
-github.com/ardanlabs/kronk v1.28.5 h1:MAXucuRdKm1DkSHwy77EA8Hulwq+5CFdi3yQ4LDlkpE=
-github.com/ardanlabs/kronk v1.28.5/go.mod h1:Gq9Rjp+GGgpWcsgsOF73TCo8nl5JHaBld1K5BMYWcao=
+github.com/ardanlabs/kronk v1.28.6 h1:pFu3JhGmmK2CVQ9Jwa08qzyUu4bHsUaLBwZf17dZVpk=
+github.com/ardanlabs/kronk v1.28.6/go.mod h1:Gq9Rjp+GGgpWcsgsOF73TCo8nl5JHaBld1K5BMYWcao=
 github.com/awalterschulze/gographviz v2.0.3+incompatible h1:9sVEXJBJLwGX7EQVhLm2elIKCm7P2YHFC8v6096G09E=
 github.com/awalterschulze/gographviz v2.0.3+incompatible/go.mod h1:GEV5wmg4YquNw7v1kkyoX9etIk8yVmXj+AkDHuuETHs=
 github.com/aws/aws-sdk-go-v2 v1.42.0 h1:XvXMJTkFQtpBKIWZnmr9ZEOc2InWM2yldjXEJ/bymhA=
