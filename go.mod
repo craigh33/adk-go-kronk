@@ -3,7 +3,7 @@ module github.com/craigh33/adk-go-kronk
 go 1.26.5
 
 require (
-	github.com/a2aproject/a2a-go/v2 v2.3.1
+	github.com/a2aproject/a2a-go/v2 v2.4.0
 	github.com/ardanlabs/kronk v1.29.3
 	google.golang.org/adk/v2 v2.1.0
 	google.golang.org/genai v1.66.0
