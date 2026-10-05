@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/a2aproject/a2a-go/v2 v2.5.0
 	github.com/ardanlabs/kronk v1.32.7
-	google.golang.org/adk/v2 v2.4.0
+	google.golang.org/adk/v2 v2.5.0
 	google.golang.org/genai v1.71.0
 )
 
@@ -112,7 +112,7 @@ require (
 	google.golang.org/genproto v0.0.0-20260911204522-f61a6ca850bd // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260911204522-f61a6ca850bd // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260911204522-f61a6ca850bd // indirect
-	google.golang.org/grpc v1.83.2 // indirect
+	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	rsc.io/omap v1.2.0 // indirect
 	rsc.io/ordered v1.1.1 // indirect
