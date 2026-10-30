@@ -28,8 +28,8 @@ github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapp
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.62.0/go.mod h1:sg6Wqbl0BKKZ5zKnQj2q0qic/3ziF894SCx1LpbX37Y=
 github.com/a2aproject/a2a-go v0.3.15 h1:h5YpCiPq3jxQ5rIns7oDjPag3ivP8u817AzdA4F+NiI=
 github.com/a2aproject/a2a-go v0.3.15/go.mod h1:I7Cm+a1oL+UT6zMoP+roaRE5vdfUa1iQGVN8aSOuZ0I=
-github.com/a2aproject/a2a-go/v2 v2.6.0 h1:QflB0gHxOP0o5quvA/h9EbYgfOsmRsSmFkeBYtKdwwk=
-github.com/a2aproject/a2a-go/v2 v2.6.0/go.mod h1:rvFIb0sBJl2qmJRYU2fQxI6hhIQksmGGMEhT/uRwWww=
+github.com/a2aproject/a2a-go/v2 v2.7.0 h1:rwIpzO5O9Mxu/Rm4S2SZfHYzNcvF3FK9aaaTxP35kAo=
+github.com/a2aproject/a2a-go/v2 v2.7.0/go.mod h1:rvFIb0sBJl2qmJRYU2fQxI6hhIQksmGGMEhT/uRwWww=
 github.com/ardanlabs/jinja v1.8.0 h1:NuRapYr/hv8J+4v1KymVAbbu6vuqMu+poXkJHfXqLs4=
 github.com/ardanlabs/jinja v1.8.0/go.mod h1:VE5Fa3Zglc+e4tFaapOnA6BRMBRDI7A2qCd3Jse6oyw=
 github.com/ardanlabs/kronk v1.32.9 h1:+yZ7qZvNu3MBFUx+Oyew94We4W9OFpE2LDhDpWtN/+U=
